@@ -1,27 +1,77 @@
 #include <Arduino.h>
 #include <max6675.h>
+#include <PID.h>
+//Thermocouple -------------------------------------
+// must use these pins on arduino Uno
+int csPin = 10; //only pin subject to change
+int soPin = 12;
+int sckPin = 13;
+int refreshRate = 225; //in ms; 220 bare minimum for MAX6675
+
+MAX6675 thermocouple(csPin, soPin, sckPin);
+
+//PID system -----------------------------------------
+float Kp = 1;
+float Kd = 0;
+float Ki = 0;
+int calibrator = A1; //potentiometer calibrator
+float setpoint = 25; //celsius
+unsigned long timer = 0;
+PID thermoPID(Kp, Ki, Kd);
+
+//Heating system -------------------------------------------
+int HEATING_PIN = 3;
+unsigned long windowSize = 2000; // 2 seconds
+unsigned long windowStart;
+float percentPower = 0.0;
+
+
 
 void setup() {
+  pinMode(HEATING_PIN, OUTPUT);
+  thermocouple.begin(); //must be called before readings
   Serial.begin(9600);
-  while (!Serial) {
-    ; // wait for serial port to connect. Needed for native USB port only
-  }
-
-  MAX6675 thermocouple(10, 12, 13); // Initialize with CS, SO, SCK pins
-  thermocouple.begin();
-
-  Serial.println("MAX6675 Thermocouple Test");
+  Serial.println("MAX6675 Thermocouple PID Test");
+  delay(100);
+  timer = millis();
+  windowStart = timer;
 }
+
+
 void loop() {
-  MAX6675 thermocouple(10, 12, 13); // Initialize with CS, SO, SCK pins
-  float celsius = thermocouple.getCelsius();
-  float fahrenheit = thermocouple.getFahrenheit();
+  unsigned long currentTime = millis();
+  unsigned long dt = (currentTime - timer); //in ms
 
-  Serial.print("Temperature: ");
-  Serial.print(celsius);
-  Serial.print(" °C | ");
-  Serial.print(fahrenheit);
-  Serial.println(" °F");
+  // long calibrationValue = (long)analogRead(calibrator);
+  // Kp = (float) map(calibrationValue, 0, 1023, 0, 500) / 100.0; //map potentiometer reading from 0-5.0
 
-  delay(1000); // Wait for 1 second before next reading
+  if(dt >= refreshRate){//only called once every refresh rate
+    //print current temp reading
+    float celsiusMeasurement = thermocouple.getCelsius();
+    Serial.print("Celsius: ");
+    Serial.print(celsiusMeasurement);
+    Serial.println(" °C");
+
+    //collect measurement
+    timer = currentTime; //update timer
+    percentPower = thermoPID.update(setpoint, celsiusMeasurement, dt / 1000.0);
+    percentPower = constrain(percentPower, 0, 100);
+
+    //PID responds to measurment
+    Serial.print("PID Output: ");
+    Serial.println(percentPower);
+  }
+  
+
+
+  //duty-cycle heating system
+  if(currentTime - windowStart > windowSize){ //create new cycle window if exceeded current window
+    windowStart = currentTime;
+  }
+  long timeHeatOn = windowSize * percentPower / 100.0;
+  if(currentTime - windowStart < timeHeatOn){
+    digitalWrite(HEATING_PIN, HIGH);
+  }else{
+    digitalWrite(HEATING_PIN, LOW);
+  }
 }
