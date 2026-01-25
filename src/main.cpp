@@ -45,7 +45,7 @@ void loop() {
   // long calibrationValue = (long)analogRead(calibrator);
   // Kp = (float) map(calibrationValue, 0, 1023, 0, 500) / 100.0; //map potentiometer reading from 0-5.0
 
-  if(dt >= refreshRate){//only called once every refresh rate
+  if(dt >= refreshRate){//only called once every refresh rate period
     //print current temp reading
     float celsiusMeasurement = thermocouple.getCelsius();
     Serial.print("Celsius: ");
