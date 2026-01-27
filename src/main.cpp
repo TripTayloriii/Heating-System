@@ -15,7 +15,7 @@ float Kp = 1;
 float Kd = 0;
 float Ki = 0;
 int calibrator = A1; //potentiometer calibrator
-float setpoint = 25; //celsius
+float setpoint = 25.0; //celsius
 unsigned long timer = 0;
 PID thermoPID(Kp, Ki, Kd);
 
@@ -57,9 +57,11 @@ void loop() {
     percentPower = thermoPID.update(setpoint, celsiusMeasurement, dt / 1000.0);
     percentPower = constrain(percentPower, 0, 100);
 
-    //PID responds to measurment
-    Serial.print("PID Output: ");
-    Serial.println(percentPower);
+    //Sending PID output to python plotter (using binary protocol)
+    Serial.write(0xAA); //reference byte
+    Serial.write((uint8_t*)&setpoint, sizeof(float));
+    Serial.write((uint8_t*)&celsiusMeasurement, sizeof(float));
+    Serial.write((uint8_t*)&percentPower, sizeof(float));
   }
   
 

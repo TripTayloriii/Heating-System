@@ -1,4 +1,4 @@
-//MAXX6675 Datasheet https://www.analog.com/media/en/technical-documentation/data-sheets/max6675.pdf
+//MAX6675 Datasheet https://www.analog.com/media/en/technical-documentation/data-sheets/max6675.pdf
 
 #ifndef max6675_H
 #define max6675_H
