@@ -13,6 +13,7 @@ float PID::update(float setpoint, float measurement, float dt){
     error = setpoint - measurement; //update error, derivative, integral
     derivative = 0.9 * derivative + 0.1 * (error - prevError) / dt;
     integral += error * dt;
+    integral = constrain(integral, -100, 100);
 
     prevError = error; //update prevError
 
