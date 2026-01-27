@@ -11,9 +11,9 @@ float celsiusMeasurement = 0;
 MAX6675 thermocouple(csPin, soPin, sckPin);
 
 //PID system -----------------------------------------
-float Kp = 1;
-float Kd = 0;
-float Ki = 0;
+float Kp = 2;
+float Kd = 0.5;
+float Ki = 0.5;
 int calibrator = A1; //potentiometer calibrator
 float setpoint = 25.0; //celsius
 unsigned long timer = 0;

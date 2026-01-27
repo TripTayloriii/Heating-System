@@ -11,7 +11,7 @@ void PID::setK(float newKp, float newKd, float newKi){
 
 float PID::update(float setpoint, float measurement, float dt){
     error = setpoint - measurement; //update error, derivative, integral
-    float derivative = (error - prevError) * dt;
+    derivative = 0.9 * derivative + 0.1 * (error - prevError) / dt;
     integral += error * dt;
 
     prevError = error; //update prevError

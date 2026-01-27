@@ -36,7 +36,8 @@ plot.setLabel('bottom', 'Time')   # X-axis label
 curveSetpoint = plot.plot(pen='r', name="Setpoint")
 curveMeasurement = plot.plot(pen='g', name="Measured")
 curvePID = plot.plot(pen='y', name="PID Output")
-plot.enableAutoRange(axis='y')
+# plot.enableAutoRange(axis='y')
+plot.setYRange(0, 100)
 plot.addLegend()
 
 #initialize empty data

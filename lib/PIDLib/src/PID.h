@@ -13,6 +13,7 @@ class PID{
         float Ki;
         float dt;
         float integral = 0;
+        float derivative = 0;
         float prevError = 0;
         float error;
 
