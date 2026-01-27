@@ -7,7 +7,7 @@ int csPin = 10; //only pin subject to change
 int soPin = 12;
 int sckPin = 13;
 int refreshRate = 225; //in ms; 220 bare minimum for MAX6675
-
+float celsiusMeasurement = 0;
 MAX6675 thermocouple(csPin, soPin, sckPin);
 
 //PID system -----------------------------------------
@@ -33,6 +33,8 @@ void setup() {
   Serial.begin(9600);
   Serial.println("MAX6675 Thermocouple PID Test");
   delay(100);
+  celsiusMeasurement = thermocouple.getCelsius();
+  percentPower = thermoPID.update(setpoint, celsiusMeasurement, 1);
   timer = millis();
   windowStart = timer;
 }
@@ -42,19 +44,20 @@ void loop() {
   unsigned long currentTime = millis();
   unsigned long dt = (currentTime - timer); //in ms
 
-  // long calibrationValue = (long)analogRead(calibrator);
-  // Kp = (float) map(calibrationValue, 0, 1023, 0, 500) / 100.0; //map potentiometer reading from 0-5.0
+  long calibrationValue = (long)analogRead(calibrator);
+  setpoint = 0.95 * setpoint + 0.05 * (float) map(calibrationValue, 0, 1023, 0, 50); //map potentiometer reading to variable range
 
   if(dt >= refreshRate){//only called once every refresh rate period
     //print current temp reading
-    float celsiusMeasurement = thermocouple.getCelsius();
-    Serial.print("Celsius: ");
-    Serial.print(celsiusMeasurement);
-    Serial.println(" °C");
+    celsiusMeasurement = 0.9 * celsiusMeasurement + 0.1 * thermocouple.getCelsius();
+    // //Debugging (DO NOT USE IF serialPlotter is on)
+    // Serial.print("Celsius: ");
+    // Serial.print(celsiusMeasurement);
+    // Serial.println(" °C");
 
     //collect measurement
     timer = currentTime; //update timer
-    percentPower = thermoPID.update(setpoint, celsiusMeasurement, dt / 1000.0);
+    percentPower = 0.9*percentPower + 0.1*thermoPID.update(setpoint, celsiusMeasurement, dt / 1000.0); //low pass filter
     percentPower = constrain(percentPower, 0, 100);
 
     //Sending PID output to python plotter (using binary protocol)

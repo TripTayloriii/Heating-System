@@ -16,5 +16,5 @@ float PID::update(float setpoint, float measurement, float dt){
 
     prevError = error; //update prevError
 
-    return Ki*error + Kd*derivative + Ki*integral;
+    return Kp*error + Kd*derivative + Ki*integral;
 }
