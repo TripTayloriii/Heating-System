@@ -7,7 +7,7 @@ import numpy
 
 #Setting up serial
 refreshRate = 225 #based off MAX6675
-serialReader = serial.Serial(port = "COM4", baudrate = 9600, timeout = 1)
+serialReader = serial.Serial(port = "COM6", baudrate = 9600, timeout = 1)
 startingByte = b'\xAA'
 packageSize = 12 #in bytes
 
