@@ -9,7 +9,7 @@ import numpy
 refreshRate = 225 #based off MAX6675
 serialReader = serial.Serial(port = "COM6", baudrate = 9600, timeout = 1)
 startingByte = b'\xAA'
-packageSize = 12 #in bytes
+packageSize = 20 #in bytes
 
 def readPacket():
     while(True):
@@ -22,8 +22,8 @@ def readPacket():
 
 def decodePacket(bytePackage):
     try:
-        (setpoint, measurement, PIDoutput) = struct.unpack("<fff", bytePackage)
-        return (setpoint, measurement, PIDoutput) #return tuple
+        (setpoint, rampedSetpoint, measurement, totalPowerOutput, PIDcorrection) = struct.unpack("<fffff", bytePackage)
+        return (setpoint, rampedSetpoint, measurement, totalPowerOutput, PIDcorrection) #return tuple
     except:
         return None #decode failed
 
@@ -34,29 +34,40 @@ plot = plotWindow.addPlot()
 plot.setLabel('left', 'Value')    # Y-axis label
 plot.setLabel('bottom', 'Time')   # X-axis label
 curveSetpoint = plot.plot(pen='r', name="Setpoint")
+curveRampedSP = plot.plot(pen='m', name="Ramped Setpoint")
 curveMeasurement = plot.plot(pen='g', name="Measured")
-curvePID = plot.plot(pen='y', name="PID Output")
+curveOutput = plot.plot(pen='b', name="Total Output")
+curvePID = plot.plot(pen='y', name="PID Correction")
 # plot.enableAutoRange(axis='y')
 plot.setYRange(0, 100)
-plot.addLegend()
+plot.addLegend(offset=(10,10))
 
 #initialize empty data
 numPoints = 500 #number of points plotted at a time
 setpointData = numpy.zeros(numPoints)
+rampedSPData = numpy.zeros(numPoints)
 measurementData = numpy.zeros(numPoints)
+outputData = numpy.zeros(numPoints)
 PIDData = numpy.zeros(numPoints)
 
-def update(setpoint, measurement, PIDoutput):
+def update(setpoint, rampedSetpoint, measurement, totalPowerOutput, PIDcorrection):
     setpointData[:] = numpy.roll(setpointData,-1) #shift old data left 1
+    rampedSPData[:] = numpy.roll(rampedSPData,-1)
     measurementData[:] = numpy.roll(measurementData,-1)
+    outputData[:] = numpy.roll(outputData,-1)
     PIDData[:] = numpy.roll(PIDData,-1)
 
     setpointData[-1] = setpoint # add new values to data
+    rampedSPData[-1] = rampedSetpoint
     measurementData[-1] = measurement
-    PIDData[-1] = PIDoutput
+    outputData[-1] = totalPowerOutput
+    PIDData[-1] = PIDcorrection
+
 
     curveSetpoint.setData(setpointData) #redraw graphs
+    curveRampedSP.setData(rampedSPData)
     curveMeasurement.setData(measurementData)
+    curveOutput.setData(outputData)
     curvePID.setData(PIDData)
 
 def readAndUpdate():
@@ -66,8 +77,8 @@ def readAndUpdate():
             return #missing packet
     else:
         return #nothing in serial
-    setpoint, measurement, PIDoutput = decodePacket(packet)
-    update(setpoint, measurement, PIDoutput)
+    setpoint, rampedSetpoint, measurement, totalPowerOutput, PIDcorrection = decodePacket(packet)
+    update(setpoint, rampedSetpoint, measurement, totalPowerOutput, PIDcorrection)
 
 #main loop using timer
 timer = QtCore.QTimer()
