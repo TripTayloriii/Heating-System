@@ -17,9 +17,9 @@ float Ki = 0.0;
 float Kpow = 2; //powerOutput = Kpow * deltaTemp
 int calibrator = A1; //potentiometer calibrator
 float setpoint = 0.0; //celsius
-float rampedSetpoint = 0.0;
-float setpointDifference = 0.0;
-float rampSpeed = 2; //rampedSetpoint can change a max of rampSpeed degrees/sec
+// float rampedSetpoint = 0.0;
+// float setpointDifference = 0.0;
+// float rampSpeed = 2; //rampedSetpoint can change a max of rampSpeed degrees/sec
 unsigned long timer = 0;
 PID thermoPID(Kp, Ki, Kd);
 
@@ -39,10 +39,10 @@ void setup() {
   Serial.println("MAX6675 Thermocouple PID Test");
   delay(100);
   celsiusMeasurement = thermocouple.getCelsius();
-  rampedSetpoint = celsiusMeasurement;
   PIDcorrection = thermoPID.update(setpoint, celsiusMeasurement, 1);
   timer = millis();
   windowStart = timer;
+  // rampedSetpoint = celsiusMeasurement;
 }
 
 
@@ -53,15 +53,17 @@ void loop() {
   long calibrationValue = (long)analogRead(calibrator);
   setpoint = (float) map(calibrationValue, 0, 1023, 0, 50); //map potentiometer reading to variable range
   
-  //setpoint ramping logic
+
   if(dt >= refreshRate){//only called once every refresh rate period
-    setpointDifference = setpoint - rampedSetpoint;
-    float maxRampStep = rampSpeed * (dt / 1000.0); 
-    if(abs(setpointDifference) > maxRampStep){
-      rampedSetpoint += copysign(maxRampStep, setpointDifference);
-    } else{
-      rampedSetpoint = setpoint;
-    }
+
+    // //setpoint ramping logic
+    // setpointDifference = setpoint - rampedSetpoint;
+    // float maxRampStep = rampSpeed * (dt / 1000.0); 
+    // if(abs(setpointDifference) > maxRampStep){
+    //   rampedSetpoint += copysign(maxRampStep, setpointDifference);
+    // } else{
+    //   rampedSetpoint = setpoint;
+    // }
 
 
     //collect measurement and calculate PID
@@ -75,10 +77,10 @@ void loop() {
 
     timer = currentTime; //update timer
 
-    float predictivePower = Kpow * (rampedSetpoint - celsiusMeasurement); 
+    float predictivePower = Kpow * (setpoint); 
     predictivePower = constrain(predictivePower, 0, 100);
 
-    PIDcorrection = thermoPID.update(rampedSetpoint, celsiusMeasurement, dt / 1000.0); //low pass filter
+    PIDcorrection = thermoPID.update(setpoint, celsiusMeasurement, dt / 1000.0); //low pass filter
     PIDcorrection = constrain(PIDcorrection, 0, 100);
 
     totalPowerOutput = 0.9 * totalPowerOutput + 0.1 * (predictivePower + PIDcorrection);
@@ -87,7 +89,7 @@ void loop() {
     //Sending PID output to python plotter (using binary protocol)
     Serial.write(0xAA); //reference byte
     Serial.write((uint8_t*)&setpoint, sizeof(float));
-    Serial.write((uint8_t*)&rampedSetpoint, sizeof(float));
+    //Serial.write((uint8_t*)&rampedSetpoint, sizeof(float));
     Serial.write((uint8_t*)&celsiusMeasurement, sizeof(float));
     Serial.write((uint8_t*)&totalPowerOutput, sizeof(float));
     Serial.write((uint8_t*)&PIDcorrection, sizeof(float));
