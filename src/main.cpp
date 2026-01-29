@@ -52,6 +52,8 @@ void loop() {
   
   // if(calibrationValue >= 500){
   //   testPowerValue = 5;
+  // }else{
+  //   testPowerValue = 0;
   // }
 
   setpoint = (float) map(calibrationValue, 0, 1023, 0, 50); //map potentiometer reading to variable range

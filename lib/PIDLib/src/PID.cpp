@@ -17,7 +17,7 @@ float PID::update(float setpoint, float measurement, float dt){
     if(!((output >= 100 && error > 0) || (output <= 0 && error < 0))){
         integral += error * dt;
     }
-    integral = constrain(integral, 0, 100);
+    integral = constrain(integral, -100, 100);
     prevError = error; //update prevError
     output = output + Ki * integral;
 
