@@ -4,9 +4,9 @@
 
 class PID{
     public:
-        PID(float Kp, float Kd, float Ki);
+        PID(float Kp, float Ki, float Kd);
         float update(float setpoint, float measurement, float dt);
-        void setK(float newKp, float newKd, float newKi);
+        void setK(float newKp, float newKi, float newKd);
     private:
         float Kp;
         float Kd;
