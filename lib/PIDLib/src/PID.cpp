@@ -9,6 +9,8 @@ void PID::setK(float newKp, float newKi, float newKd){
     Kd = newKd;
 }
 
+int derivMult = 5;
+
 float PID::update(float setpoint, float measurement, float dt){
     error = setpoint - measurement; //update error, derivative, integral
     derivative = 0.9 * derivative + 0.1 * (error - prevError) / dt;
@@ -17,9 +19,9 @@ float PID::update(float setpoint, float measurement, float dt){
     if(!((output >= 100 && error > 0) || (output <= 0 && error < 0))){
         integral += error * dt;
     }
-    integral = constrain(integral, -100, 100);
+    integral = constrain(integral, -300, 300);
     prevError = error; //update prevError
-    output = output + Ki * integral;
+    output = output + Ki / (1 + 5*abs(derivative)) * integral;
 
     return constrain(output, 0, 100);
 }
