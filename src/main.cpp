@@ -11,7 +11,7 @@ float celsiusMeasurement = 0;
 MAX6675 thermocouple(csPin, soPin, sckPin);
 
 //PID system -----------------------------------------
-float Kp = 2;
+float Kp = 3;
 float Kd = 10.0;
 float Ki = 0.1;
 float Kpow = 2; //powerOutput = Kpow * setpoint - ambient
