@@ -15,6 +15,7 @@ class PID{
         float integral = 0;
         float derivative = 0;
         float derivativeMeasurement = 0;
+        float filteredDerivativeMeasurement;
         float prevError = 0;
         float prevMeasurement;
         float error;
