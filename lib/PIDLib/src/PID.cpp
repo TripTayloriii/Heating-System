@@ -21,7 +21,7 @@ float PID::update(float setpoint, float measurement, float dt){
     // Integration
     bool heating = (output > 0);
     bool nearSetpoint = abs(error) < max(2.0, 0.2 * setpoint);     // Celsius window
-    bool stable = abs(derivativeMeasurement) < 0.5;      // Celsius/s
+    bool stable = abs(derivativeMeasurement) < 1;      // Celsius/s
 
     if (heating && nearSetpoint && stable) { //only integrate if conditions are met
         integral += error * dt;
