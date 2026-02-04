@@ -20,13 +20,13 @@ float PID::update(float setpoint, float measurement, float dt){
 
     // Integration
     bool heating = (output > 0);
-    bool nearSetpoint = abs(error) < 4.0;     // Celsius window
-    bool stable = abs(derivativeMeasurement) < 0.05;      // Celsius/s
+    bool nearSetpoint = abs(error) < max(2.0, 0.2 * setpoint);     // Celsius window
+    bool stable = abs(derivativeMeasurement) < 0.5;      // Celsius/s
 
     if (heating && nearSetpoint && stable) { //only integrate if conditions are met
         integral += error * dt;
     }
-    integral = constrain(integral, 0, 200); //clamp integral
+    integral = constrain(integral, 0, 2000); //clamp integral
     output += Ki * integral;
 
     prevMeasurement = measurement;

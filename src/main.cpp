@@ -11,10 +11,9 @@ float celsiusMeasurement = 0;
 MAX6675 thermocouple(csPin, soPin, sckPin);
 
 //PID system -----------------------------------------
-float Kp = 3;
-float Kd = 10.0;
-float Ki = 0.1;
-float Kpow = 2; //powerOutput = Kpow * setpoint - ambient
+float Kp = 2.3;
+float Kd = 12.0;
+float Ki = 0.02;
 int calibrator = A1; //potentiometer calibrator
 float setpoint = 0.0; //celsius
 float ambientTemp = 22.0; //celsius
@@ -27,7 +26,6 @@ unsigned long windowSize = 500; // 2 seconds
 unsigned long windowStart;
 float PIDcorrection = 0.0;
 float totalPowerOutput = 0.0;
-float testPowerValue = 0.0;
 
 
 
@@ -49,14 +47,8 @@ void loop() {
   unsigned long dt = (currentTime - timer); //in ms
 
   long calibrationValue = (long)analogRead(calibrator);
-  
-  // if(calibrationValue >= 500){
-  //   testPowerValue = 5;
-  // }else{
-  //   testPowerValue = 0;
-  // }
 
-  setpoint = (float) map(calibrationValue, 0, 1023, 0, 50); //map potentiometer reading to variable range
+  setpoint = (float) map(calibrationValue, 0, 1023, 0, 90); //map potentiometer reading to variable range
   
 
   if(dt >= refreshRate){//only called once every refresh rate period
@@ -71,16 +63,11 @@ void loop() {
 
     timer = currentTime; //update timer
 
-    float predictivePower = Kpow * (setpoint - ambientTemp); 
-    predictivePower = constrain(predictivePower, 0, 100);
-
     PIDcorrection = thermoPID.update(setpoint, celsiusMeasurement, dt / 1000.0);
     PIDcorrection = constrain(PIDcorrection, 0, 100);
 
     totalPowerOutput = PIDcorrection;
     totalPowerOutput = constrain(totalPowerOutput, 0, 100);
-    // //for testing
-    // totalPowerOutput = testPowerValue;
 
     //Sending PID output to python plotter (using binary protocol)
     Serial.write(0xAA); //reference byte
