@@ -22,7 +22,7 @@ PID thermoPID(Kp, Ki, Kd);
 
 //Heating system -------------------------------------------
 int HEATING_PIN = 3;
-unsigned long windowSize = 500; // 2 seconds
+unsigned long windowSize = 500; // .5 seconds
 unsigned long windowStart;
 float PIDcorrection = 0.0;
 float totalPowerOutput = 0.0;
@@ -57,9 +57,9 @@ void loop() {
 
     //print current temp reading
     // //Debugging (DO NOT USE IF serialPlotter is on)
-    // Serial.print("Celsius: ");
-    // Serial.print(celsiusMeasurement);
-    // Serial.println(" °C");
+    Serial.print("Celsius: ");
+    Serial.print(celsiusMeasurement);
+    Serial.println(" °C");
 
     timer = currentTime; //update timer
 
@@ -70,11 +70,11 @@ void loop() {
     totalPowerOutput = constrain(totalPowerOutput, 0, 100);
 
     //Sending PID output to python plotter (using binary protocol)
-    Serial.write(0xAA); //reference byte
-    Serial.write((uint8_t*)&setpoint, sizeof(float));
-    Serial.write((uint8_t*)&celsiusMeasurement, sizeof(float));
-    Serial.write((uint8_t*)&totalPowerOutput, sizeof(float));
-    Serial.write((uint8_t*)&PIDcorrection, sizeof(float));
+    // Serial.write(0xAA); //reference byte
+    // Serial.write((uint8_t*)&setpoint, sizeof(float));
+    // Serial.write((uint8_t*)&celsiusMeasurement, sizeof(float));
+    // Serial.write((uint8_t*)&totalPowerOutput, sizeof(float));
+    // Serial.write((uint8_t*)&PIDcorrection, sizeof(float));
   }
   
 
