@@ -11,7 +11,7 @@ import numpy
 refreshRate = 100 #based off MAX6675
 serialReader = serial.Serial(port = "COM6", baudrate = 9600, timeout = 1)
 startingByte = b'\xAA'
-packageSize = 16 #in bytes
+packageSize = 28 #in bytes
 time.sleep(2) #wait for arduino to reset
 print("Arduino ready")
 
@@ -26,21 +26,29 @@ def readPacket():
 
 def decodePacket(bytePackage):
     try:
-        (setpoint, measurement, totalPowerOutput, PIDcorrection) = struct.unpack("<ffff", bytePackage)
-        return (setpoint, measurement, totalPowerOutput, PIDcorrection) #return tuple
+        (setpoint, measurement, totalPowerOutput, PIDcorrection, Kp, Ki, Kd) = struct.unpack("<fffffff", bytePackage)
+        return (setpoint, measurement, totalPowerOutput, PIDcorrection, Kp, Ki, Kd) #return tuple
     except:
         return None #decode failed
     
-def setSetpoint(newSetpoint):
-    cmd = f"SP{newSetpoint}\n" 
-    serialReader.write(cmd.encode())
+def sendCommand(cmd, value): #string, float
+    # P -> setpoint
+    # KP -> P gain
+    # KI -> I gain
+    # KD -> D gain
+    command = f"{cmd}{value}\n" 
+    print(f"Command {cmd}{value} sent\n")
+    serialReader.write(command.encode())
 
 def inputThread(): #thread allows for Arduino commands without interrupts
     while True:
         try:
-            userInput = input("Enter new setpoint: \n").strip()
-            newSetpoint = float(userInput)
-            setSetpoint(newSetpoint)
+            userInput = input("Enter command (SP/KP/KI/KD) + value: \n\n").strip()
+            if not userInput: #blank input
+                continue
+            cmd = userInput[:2].upper()
+            value = float(userInput[2:])
+            sendCommand(cmd, value)
         except:
             print("Invalid input")
 
@@ -94,9 +102,11 @@ def readAndUpdate():
             return #missing packet
     else:
         return #nothing in serial
-    setpoint, measurement, totalPowerOutput, PIDcorrection = decodePacket(packet)
+    setpoint, measurement, totalPowerOutput, PIDcorrection, Kp, Ki, Kd = decodePacket(packet)
+
+    #printing diagnostics
     if counter % 10 == True: #print every 10th sample
-        print(f"Current Temperature: {measurement:.2f} °C")
+        print(f"Current Temperature: {measurement:.2f} °C -------- Settings Kp: {Kp:.2f} -- Ki: {Ki:.2f} -- Kd: {Kd:.2f}\n")
     counter += 1
     update(setpoint, measurement, totalPowerOutput, PIDcorrection)
 

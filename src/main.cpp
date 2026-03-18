@@ -14,9 +14,7 @@ MAX6675 thermocouple(csPin, soPin, sckPin);
 float Kp = 2.5;
 float Kd = 15.0;
 float Ki = 0.05;
-int calibrator = A1; //potentiometer calibrator
 float setpoint = 0.0; //celsius
-float ambientTemp = 22.0; //celsius
 unsigned long timer = 0;
 PID thermoPID(Kp, Ki, Kd);
 
@@ -57,6 +55,24 @@ void loop() {
         float newSetpoint = inputString.substring(2).toFloat();
         setpoint = constrain(newSetpoint,0,1000);
       }
+
+      else if(inputString.startsWith("KP")){ //P gain
+        float newP = inputString.substring(2).toFloat();
+        Kp = newP;
+        thermoPID.setK(Kp, Ki, Kd);
+      }
+
+      else if(inputString.startsWith("KI")){ //I gain
+        float newI = inputString.substring(2).toFloat();
+        Ki = newI;
+        thermoPID.setK(Kp, Ki, Kd);
+      }
+
+      else if(inputString.startsWith("KD")){ //D gain
+        float newD = inputString.substring(2).toFloat();
+        Kd = newD;
+        thermoPID.setK(Kp, Ki, Kd);
+      }
       inputString = ""; //clear input
     }else{
       inputString += c;
@@ -95,6 +111,9 @@ void loop() {
     Serial.write((uint8_t*)&celsiusMeasurement, sizeof(float));
     Serial.write((uint8_t*)&totalPowerOutput, sizeof(float));
     Serial.write((uint8_t*)&PIDcorrection, sizeof(float));
+    Serial.write((uint8_t*)&Kp, sizeof(float));
+    Serial.write((uint8_t*)&Ki, sizeof(float));
+    Serial.write((uint8_t*)&Kd, sizeof(float));
   }
   
   //duty-cycle heating system
