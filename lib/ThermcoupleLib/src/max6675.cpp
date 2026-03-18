@@ -5,8 +5,8 @@
 // Constructor to initialize the MAX6675 with specified pins
 MAX6675::MAX6675(int csPin, int soPin, int sckPin){
     this->csPin = csPin; //chip select
-    this->soPin = soPin; //master input - slave output
-    this->sckPin = sckPin; //synchronized clock
+    this->soPin = soPin; //master input - slave output --> used for manual SPI
+    this->sckPin = sckPin; //synchronized clock --> used for manual SPI
 }
 
 //Begins SPI and sets csPin to off (HIGH)
@@ -17,19 +17,29 @@ void MAX6675::begin(void){
 }
 
 float MAX6675::getCelsius(void){
-    SPI.beginTransaction(SPISettings(4000000, MSBFIRST, SPI_MODE0)); //set SPI settings
-    digitalWrite(csPin, LOW); //select
-    uint16_t value = SPI.transfer16(0); //read 16 bits
-    digitalWrite(csPin, HIGH); //deselect
-    SPI.endTransaction();
 
-    if(value & 0x4){ //checks if bit2 is 1 (disconnected)
-        Serial.println("MAX6675 disconnected");
-        return NAN;
+    const int numRetries = 10; //will try to get a reading multiple times if disconnect before returning NAN
+
+    for(int numTry = 0; numTry < numRetries; numTry++){
+        SPI.beginTransaction(SPISettings(4000000, MSBFIRST, SPI_MODE0)); //set SPI settings
+
+        digitalWrite(csPin, LOW); //select
+        uint16_t value = SPI.transfer16(0); //read 16 bits
+        digitalWrite(csPin, HIGH); //deselect
+
+        SPI.endTransaction();
+
+        if(!(value & 0x4)){ //checks if bit2 is 0 (connected)
+            value >>= 3; //remove non-temperature bits
+        return value * 0.25; //LSB increments 0.25 Celcius
+        }
+
+        Serial.println("MAX6675 disconnected, retrying...");
+        delay(250); //must wait 225ms for refresh
     }
 
-    value >>= 3; //remove non-temperature bits
-    return value * 0.25; //LSB increments 0.25 Celcius
+    Serial.println("All retries failed");
+    return NAN;
 }
 
 float MAX6675::getFahrenheit(void){

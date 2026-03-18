@@ -1,4 +1,6 @@
 import serial
+import threading
+import time
 import pyqtgraph
 from pyqtgraph.Qt import QtWidgets
 from pyqtgraph.Qt import QtCore
@@ -10,6 +12,8 @@ refreshRate = 100 #based off MAX6675
 serialReader = serial.Serial(port = "COM6", baudrate = 9600, timeout = 1)
 startingByte = b'\xAA'
 packageSize = 16 #in bytes
+time.sleep(2) #wait for arduino to reset
+print("Arduino ready")
 
 def readPacket():
     while(True):
@@ -26,6 +30,22 @@ def decodePacket(bytePackage):
         return (setpoint, measurement, totalPowerOutput, PIDcorrection) #return tuple
     except:
         return None #decode failed
+    
+def setSetpoint(newSetpoint):
+    cmd = f"SP{newSetpoint}\n" 
+    serialReader.write(cmd.encode())
+
+def inputThread(): #thread allows for Arduino commands without interrupts
+    while True:
+        try:
+            userInput = input("Enter new setpoint: \n").strip()
+            newSetpoint = float(userInput)
+            setSetpoint(newSetpoint)
+        except:
+            print("Invalid input")
+
+#Begin input thread
+threading.Thread(target = inputThread, daemon = True).start()
 
 #setup Plotter
 plotController = QtWidgets.QApplication([])
@@ -65,7 +85,9 @@ def update(setpoint, measurement, totalPowerOutput, PIDcorrection):
     curveOutput.setData(outputData)
     curvePID.setData(PIDData)
 
+counter = 0
 def readAndUpdate():
+    global counter
     if(serialReader.is_open):
         packet = readPacket()
         if packet == None:
@@ -73,6 +95,9 @@ def readAndUpdate():
     else:
         return #nothing in serial
     setpoint, measurement, totalPowerOutput, PIDcorrection = decodePacket(packet)
+    if counter % 10 == True: #print every 10th sample
+        print(f"Current Temperature: {measurement:.2f} °C")
+    counter += 1
     update(setpoint, measurement, totalPowerOutput, PIDcorrection)
 
 #main loop using timer

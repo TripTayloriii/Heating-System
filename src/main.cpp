@@ -7,7 +7,7 @@ int csPin = 10; //only pin subject to change
 int soPin = 12;
 int sckPin = 13;
 int refreshRate = 225; //in ms; 220 bare minimum for MAX6675
-float celsiusMeasurement = 0;
+float celsiusMeasurement = NAN;
 MAX6675 thermocouple(csPin, soPin, sckPin);
 
 //PID system -----------------------------------------
@@ -19,6 +19,9 @@ float setpoint = 0.0; //celsius
 float ambientTemp = 22.0; //celsius
 unsigned long timer = 0;
 PID thermoPID(Kp, Ki, Kd);
+
+//User input ------------------------------------------
+String inputString = "";
 
 //Heating system -------------------------------------------
 int HEATING_PIN = 3;
@@ -43,23 +46,40 @@ void setup() {
 
 
 void loop() {
+  //Look for new cmds from python
+  while(Serial.available()){
+    char c = Serial.read();
+
+    if(c == '\n') { //end of cmd
+      inputString.trim();
+      
+      if(inputString.startsWith("SP")){ //Setpoint command
+        float newSetpoint = inputString.substring(2).toFloat();
+        setpoint = constrain(newSetpoint,0,1000);
+      }
+      inputString = ""; //clear input
+    }else{
+      inputString += c;
+    }
+  }
+
+//--------------------------------------------
+
   unsigned long currentTime = millis();
   unsigned long dt = (currentTime - timer); //in ms
-
-  long calibrationValue = (long)analogRead(calibrator);
-
-  setpoint = (float) map(calibrationValue, 0, 1023, 0, 90); //map potentiometer reading to variable range
   
-
   if(dt >= refreshRate){//only called once every refresh rate period
     //collect measurement and calculate PID
-    celsiusMeasurement = 0.9 * celsiusMeasurement + 0.1 * thermocouple.getCelsius();
+    float newReading = thermocouple.getCelsius();
+    if(!isnan(newReading)){
+      celsiusMeasurement = 0.9 * celsiusMeasurement + 0.1 * newReading;
+    }
 
     //print current temp reading
     // //Debugging (DO NOT USE IF serialPlotter is on)
-    Serial.print("Celsius: ");
-    Serial.print(celsiusMeasurement);
-    Serial.println(" °C");
+    // Serial.print("Celsius: ");
+    // Serial.print(celsiusMeasurement);
+    // Serial.println(" °C");
 
     timer = currentTime; //update timer
 
@@ -70,15 +90,13 @@ void loop() {
     totalPowerOutput = constrain(totalPowerOutput, 0, 100);
 
     //Sending PID output to python plotter (using binary protocol)
-    // Serial.write(0xAA); //reference byte
-    // Serial.write((uint8_t*)&setpoint, sizeof(float));
-    // Serial.write((uint8_t*)&celsiusMeasurement, sizeof(float));
-    // Serial.write((uint8_t*)&totalPowerOutput, sizeof(float));
-    // Serial.write((uint8_t*)&PIDcorrection, sizeof(float));
+    Serial.write(0xAA); //reference byte
+    Serial.write((uint8_t*)&setpoint, sizeof(float));
+    Serial.write((uint8_t*)&celsiusMeasurement, sizeof(float));
+    Serial.write((uint8_t*)&totalPowerOutput, sizeof(float));
+    Serial.write((uint8_t*)&PIDcorrection, sizeof(float));
   }
   
-
-
   //duty-cycle heating system
   if(currentTime - windowStart > windowSize){ //create new cycle window if exceeded current window
     windowStart = currentTime;
