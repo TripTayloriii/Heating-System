@@ -106,7 +106,7 @@ def readAndUpdate():
 
     #printing diagnostics
     if counter % 10 == True: #print every 10th sample
-        print(f"Current Temperature: {measurement:.2f} °C -------- Settings Kp: {Kp:.2f} -- Ki: {Ki:.2f} -- Kd: {Kd:.2f}\n")
+        print(f"Temp: {measurement:.2f} °C | Kp: {Kp:.2f} | Ki: {Ki:.2f} | Kd: {Kd:.2f}")
     counter += 1
     update(setpoint, measurement, totalPowerOutput, PIDcorrection)
 
