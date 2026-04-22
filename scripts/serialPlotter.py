@@ -7,6 +7,7 @@ from pyqtgraph.Qt import QtCore
 import struct
 import numpy   
 import csv 
+from pathlib import Path
 
 #Setting up serial
 refreshRate = 100 #based off MAX6675
@@ -17,7 +18,8 @@ time.sleep(2) #wait for arduino to reset
 print("Arduino ready")
 
 startingTime = time.time()
-defaultFilename = f"PIDdata_{int(startingTime)}.csv"
+downloads = Path.home() / "Downloads"
+defaultFilename = downloads / f"PIDdata_{int(startingTime)}.csv"
 def saveAsCSV(filename = defaultFilename):
     with open(filename, mode = 'w', newline = '') as file:
         writer = csv.writer(file)
@@ -28,7 +30,7 @@ def saveAsCSV(filename = defaultFilename):
         
         #Data
         writer.writerows(loggedData)
-        print("Data saved to " + filename)
+        print("Data saved to downloads")
         
 def readPacket():
     while(True):
