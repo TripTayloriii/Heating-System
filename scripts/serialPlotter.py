@@ -5,7 +5,8 @@ import pyqtgraph
 from pyqtgraph.Qt import QtWidgets
 from pyqtgraph.Qt import QtCore
 import struct
-import numpy    
+import numpy   
+import csv 
 
 #Setting up serial
 refreshRate = 100 #based off MAX6675
@@ -15,6 +16,20 @@ packageSize = 28 #in bytes
 time.sleep(2) #wait for arduino to reset
 print("Arduino ready")
 
+startingTime = time.time()
+defaultFilename = f"PIDdata_{int(startingTime)}.csv"
+def saveAsCSV(filename = defaultFilename):
+    with open(filename, mode = 'w', newline = '') as file:
+        writer = csv.writer(file)
+
+        #Headers
+        writer.writerow(["Time(s)", "Setpoint (C)", "Temperature (C)", 
+                         "TotalOutput (%)", "PIDOutput (%)"])
+        
+        #Data
+        writer.writerows(loggedData)
+        print("Data saved to " + filename)
+        
 def readPacket():
     while(True):
         if serialReader.read(1) == startingByte: #find starting byte
@@ -46,6 +61,9 @@ def inputThread(): #thread allows for Arduino commands without interrupts
             userInput = input("Enter command (SP/KP/KI/KD) + value: \n\n").strip()
             if not userInput: #blank input
                 continue
+            if userInput.upper() == "SAVE":
+                saveAsCSV()
+                continue
             cmd = userInput[:2].upper()
             value = float(userInput[2:])
             sendCommand(cmd, value)
@@ -71,6 +89,7 @@ plot.addLegend(offset=(10,10))
 
 #initialize empty data
 numPoints = 500 #number of points plotted at a time
+loggedData = []
 setpointData = numpy.zeros(numPoints)
 measurementData = numpy.zeros(numPoints)
 outputData = numpy.zeros(numPoints)
@@ -102,10 +121,16 @@ def readAndUpdate():
             return #missing packet
     else:
         return #nothing in serial
-    setpoint, measurement, totalPowerOutput, PIDcorrection, Kp, Ki, Kd = decodePacket(packet)
+    decoded = decodePacket(packet)
+    if(decoded == None):
+        return #decode failed
+    setpoint, measurement, totalPowerOutput, PIDcorrection, Kp, Ki, Kd = decoded
+
+    #Adding new data to logged data
+    loggedData.append([time.time() - startingTime, setpoint, measurement, totalPowerOutput, PIDcorrection])
 
     #printing diagnostics
-    if counter % 10 == True: #print every 10th sample
+    if counter % 10 == 0: #print every 10th sample
         print(f"Temp: {measurement:.2f} °C | Kp: {Kp:.2f} | Ki: {Ki:.2f} | Kd: {Kd:.2f}")
     counter += 1
     update(setpoint, measurement, totalPowerOutput, PIDcorrection)
