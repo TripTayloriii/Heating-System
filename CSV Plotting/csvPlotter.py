@@ -4,7 +4,7 @@ import os
 import numpy as np
 
 #load CSV file
-filename = "1.43V-2.024A-2.935W.csv"  #filename
+filename = "inChamberHeating1.csv"  #filename
 
 #file must me in same folder as script
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -21,10 +21,17 @@ totalOutput = df.iloc[:, 3]
 PIDOutput = df.iloc[:, 4]
 
 
+#trim data to window
+startTime = 0
+endTime = time.iloc[-1]
+window = (time >= startTime) & (time <= endTime)
+time = time[window].reset_index(drop=True)
+setpoint = setpoint[window].reset_index(drop=True)
+measurement = measurement[window].reset_index(drop=True)
+
 #choose x and y axis
 x = time  # first column
 y = measurement  # second column
-
 
 #plot
 plt.figure()
@@ -33,8 +40,8 @@ plt.xlabel(df.columns[0])
 plt.ylabel(df.columns[2])
 plt.title(filename[:filename.find(".csv")])
 plt.grid()
-plt.xlim(0, len(x))          
-plt.ylim(-1, 100)   
+plt.xlim(startTime, endTime)          
+plt.ylim(-1, 200)   
 #annotations
 # plt.axvline(x=187.5, linestyle='--', color = 'r')
 # plt.text(189.5, 60, "Measuring Sample", rotation=90, fontsize = 8)     
@@ -51,30 +58,45 @@ plt.ylim(-1, 100)
 
 # Analysis 
 def getScore(time, setpoint, measurement):
-    #criteria 1
+    print("\n\n\n--------------------------------------\n")
+    #checking edge cases
+    if len(time) == 0:
+        return float('inf')
+
+    #criteria 1 - iae
     error = setpoint - measurement
     dt = np.diff(time, prepend=time.iloc[0])
     iae = np.sum(np.abs(error) * dt)
     iae = iae/100
-    print("IAE: ", iae)
+    print("IAE:                   ", iae)
 
-    #criteria 2
+    #criteria 2 - overshoot
     target = setpoint.iloc[-1]
     overshoot = max(0, np.max(measurement) - target)
-    print("Overshoot", overshoot)
+    print("Overshoot:             ", overshoot, "C")
 
-    #criteria 3
-    settlingTime = 100
+    #criteria 3 - settling time
+    settlingTime = time.iloc[-1]
+    settlingIndex = len(time) - 1
     for i in range(len(error)):
         if np.all(np.abs(error[i:]) < 5.0):
-            settlingTime = time.iloc[i]
+            settlingTime = time.iloc[i] - time.iloc[0]
+            settlingIndex = i
+            print("Settling Time:         ", settlingTime, "s")
             break
-    print("Settling Time: ", settlingTime)
+    if settlingTime == time.iloc[-1]:
+        print("Settling Time:          Not settled for", settlingTime, "s")
 
-    totalScore = 0.7*iae + 0.2*overshoot + 0.1*settlingTime
+    #criteria 4 - oscillation amplitude
+    setpointReached = measurement.iloc[settlingIndex:]
+    oscillationAmp = (np.max(setpointReached) - np.min(setpointReached)) / 2
+    print("Oscillation Amplitude: ", oscillationAmp, "C")
+
+    #final score
+    totalScore = 0.7*iae + 0.2*overshoot + 0.1*settlingTime + 0.1*oscillationAmp
     return totalScore
 
-print("Score: ", getScore(time, setpoint, measurement))
+print("Score:                 ", getScore(time, setpoint, measurement))
 
 plt.show()
 
