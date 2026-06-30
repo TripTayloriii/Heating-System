@@ -4,7 +4,7 @@ import os
 import numpy as np
 
 #load CSV file
-filename = "inChamberHeating1.csv"  #filename
+filename = "PID5V-P12-I2-D2.csv"  #filename
 
 #file must me in same folder as script
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -24,24 +24,25 @@ PIDOutput = df.iloc[:, 4]
 #trim data to window
 startTime = 0
 endTime = time.iloc[-1]
+startTime = 65
+# endTime = 300
 window = (time >= startTime) & (time <= endTime)
 time = time[window].reset_index(drop=True)
+time = time - startTime
 setpoint = setpoint[window].reset_index(drop=True)
 measurement = measurement[window].reset_index(drop=True)
 
-#choose x and y axis
-x = time  # first column
-y = measurement  # second column
 
 #plot
 plt.figure()
-plt.plot(x, y)
+plt.plot(time, measurement)
+plt.plot(time, setpoint)
 plt.xlabel(df.columns[0])
 plt.ylabel(df.columns[2])
 plt.title(filename[:filename.find(".csv")])
 plt.grid()
-plt.xlim(startTime, endTime)          
-plt.ylim(-1, 200)   
+plt.xlim(0, endTime - startTime)          
+plt.ylim(-1, 300)   
 #annotations
 # plt.axvline(x=187.5, linestyle='--', color = 'r')
 # plt.text(189.5, 60, "Measuring Sample", rotation=90, fontsize = 8)     

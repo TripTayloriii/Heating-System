@@ -11,9 +11,9 @@ float celsiusMeasurement = NAN;
 MAX6675 thermocouple(csPin, soPin, sckPin);
 
 //PID system -----------------------------------------
-float Kp = 2.5;
-float Kd = 15.0;
-float Ki = 0.05;
+float Kp = 12.0;
+float Kd = 2.0;
+float Ki = 1;
 float setpoint = 0.0; //celsius
 unsigned long timer = 0;
 PID thermoPID(Kp, Ki, Kd);
@@ -23,7 +23,7 @@ String inputString = "";
 
 //Heating system -------------------------------------------
 int HEATING_PIN = 3;
-unsigned long windowSize = 500; // .5 seconds
+unsigned long windowSize = 10; // .5 seconds
 unsigned long windowStart;
 float PIDcorrection = 0.0;
 float totalPowerOutput = 0.0;
@@ -102,7 +102,7 @@ void loop() {
     PIDcorrection = thermoPID.update(setpoint, celsiusMeasurement, dt / 1000.0);
     PIDcorrection = constrain(PIDcorrection, 0, 100);
 
-    totalPowerOutput = PIDcorrection;
+    totalPowerOutput = 0.85*totalPowerOutput + 0.15*PIDcorrection; 
     totalPowerOutput = constrain(totalPowerOutput, 0, 100);
 
     //Sending PID output to python plotter (using binary protocol)

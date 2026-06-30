@@ -86,7 +86,7 @@ curveMeasurement = plot.plot(pen='g', name="Measured")
 curveOutput = plot.plot(pen='b', name="Total Output")
 curvePID = plot.plot(pen='y', name="PID Correction")
 # plot.enableAutoRange(axis='y')
-plot.setYRange(0, 100)
+plot.setYRange(0, 300)
 plot.addLegend(offset=(10,10))
 
 #initialize empty data
