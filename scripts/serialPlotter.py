@@ -17,23 +17,18 @@ refreshRate = 25 #based off Phidget (minimum 20 ms)
 
 #setting up Phidget
 measurement = 0.0
-measurementLock = threading.Lock()
+measurementLock = threading.Lock() #use when changing measurement
 tempReader = TemperatureSensor()
 tempReader.openWaitForAttachment(Phidget.DEFAULT_TIMEOUT)
 tempReader.setDataInterval(refreshRate)
 
 #setting up Arduino
 ser = serial.Serial(port = "COM6", baudrate = 115200, timeout = 1)
-serialLock = threading.Lock()
+serialLock = threading.Lock() #use when writing to serial
 startingByte = b'\xAA'
 packageSize = 24 #in bytes
 time.sleep(2) #wait for arduino to reset
 print("Arduino ready")
-
-
-
-
-
 
 
 startingTime = time.time()
@@ -95,7 +90,6 @@ def inputThread(): #thread allows for Arduino commands without interrupts
             print(f"Command {cmd}{value} sent\n")
         except ValueError:
             print("Invalid input")
-
 #Begin input thread
 threading.Thread(target = inputThread, daemon = True).start()
 
@@ -110,12 +104,11 @@ def outputThread():
         except Exception as e:
             print("Temperature error:", e)
         time.sleep(refreshRate / 1000.0)
-
 #Begin output thread
 threading.Thread(target = outputThread, daemon = True).start()
 
 
-#setup Plotter
+#setup plotter
 plotController = QtWidgets.QApplication([])
 plotWindow = pyqtgraph.GraphicsLayoutWidget(show = True, title = "PID Heating System")
 plot = plotWindow.addPlot()
@@ -162,14 +155,14 @@ def readAndUpdate():
         currentMeasurement = measurement
     latestPacket = None
 
-    # Drain serial buffer and keep newest packet
-    while True:
+    while True: # Drain serial buffer and keep newest packet
         packet = readPacket()
         if packet is None:
             break
         latestPacket = packet
     if latestPacket is None:
         return
+    
     decoded = decodePacket(latestPacket)
     if(decoded == None):
         return #decode failed
@@ -179,7 +172,7 @@ def readAndUpdate():
     loggedData.append([time.time() - startingTime, setpoint, currentMeasurement, totalPowerOutput, PIDcorrection])
 
     #printing diagnostics
-    if counter % 10 == 0: #print every 10th sample
+    if counter % 20 == 0: #print every 10th sample
         print(f"Temp: {currentMeasurement:.2f} °C | Kp: {Kp:.2f} | Ki: {Ki:.2f} | Kd: {Kd:.2f}")
     counter += 1
     update(setpoint, currentMeasurement, totalPowerOutput, PIDcorrection)
