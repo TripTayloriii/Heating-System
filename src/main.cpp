@@ -1,14 +1,13 @@
 #include <Arduino.h>
-#include <max6675.h>
+// #include <max6675.h>
 #include <PID.h>
 //Thermocouple -------------------------------------
 // must use these pins on arduino Uno
 int csPin = 10; //only pin subject to change
 int soPin = 12;
 int sckPin = 13;
-int refreshRate = 225; //in ms; 220 bare minimum for MAX6675
-float celsiusMeasurement = NAN;
-MAX6675 thermocouple(csPin, soPin, sckPin);
+int refreshRate = 25000; //in micros; 20 bare minimum for Phidget (225 for MAX6675)
+float celsiusMeasurement; //ambient
 
 //PID system -----------------------------------------
 float Kp = 0.15;
@@ -23,7 +22,7 @@ String inputString = "";
 
 //Heating system -------------------------------------------
 int HEATING_PIN = 3;
-unsigned long windowSize = 50; // ms seconds
+unsigned long windowSize = 50000; // micro seconds
 unsigned long windowStart;
 float PIDcorrection = 0.0;
 float totalPowerOutput = 0.0;
@@ -32,13 +31,10 @@ float totalPowerOutput = 0.0;
 
 void setup() {
   pinMode(HEATING_PIN, OUTPUT);
-  thermocouple.begin(); //must be called before readings
-  Serial.begin(9600);
-  Serial.println("MAX6675 Thermocouple PID Test");
+  Serial.begin(115200);
+  Serial.println("Phidget Thermocouple PID Test");
   delay(100);
-  celsiusMeasurement = thermocouple.getCelsius();
-  PIDcorrection = thermoPID.update(setpoint, celsiusMeasurement, 1);
-  timer = millis();
+  timer = micros();
   windowStart = timer;
 }
 
@@ -51,7 +47,11 @@ void loop() {
     if(c == '\n') { //end of cmd
       inputString.trim();
       
-      if(inputString.startsWith("SP")){ //Setpoint command
+      if(inputString.startsWith("TM")){ //temperature update
+        celsiusMeasurement = inputString.substring(2).toFloat();
+      }
+
+      else if(inputString.startsWith("SP")){ //Setpoint command
         float newSetpoint = inputString.substring(2).toFloat();
         setpoint = constrain(newSetpoint,0,1000);
       }
@@ -81,15 +81,10 @@ void loop() {
 
 //--------------------------------------------
 
-  unsigned long currentTime = millis();
-  unsigned long dt = (currentTime - timer); //in ms
+  unsigned long currentTime = micros();
+  unsigned long dt = (currentTime - timer); //in micros
   
   if(dt >= refreshRate){//only called once every refresh rate period
-    //collect measurement and calculate PID
-    float newReading = thermocouple.getCelsius();
-    if(!isnan(newReading)){
-      celsiusMeasurement = 0.9 * celsiusMeasurement + 0.1 * newReading;
-    }
 
     //print current temp reading
     // //Debugging (DO NOT USE IF serialPlotter is on)
@@ -103,7 +98,7 @@ void loop() {
     float feedforward = 0.367 * (setpoint - 26.955); //derived with trendline of hold temps - 5V
 
     // PID response
-    PIDcorrection = 0.8*PIDcorrection + 0.2*thermoPID.update(setpoint, celsiusMeasurement, dt / 1000.0); //Dampened output
+    PIDcorrection = 0.8*PIDcorrection + 0.2*thermoPID.update(setpoint, celsiusMeasurement, dt / 100000.0); //Dampened output
     PIDcorrection = constrain(PIDcorrection, -100, 100);
 
 
@@ -113,7 +108,6 @@ void loop() {
     //Sending PID output to python plotter (using binary protocol)
     Serial.write(0xAA); //reference byte
     Serial.write((uint8_t*)&setpoint, sizeof(float));
-    Serial.write((uint8_t*)&celsiusMeasurement, sizeof(float));
     Serial.write((uint8_t*)&totalPowerOutput, sizeof(float));
     Serial.write((uint8_t*)&PIDcorrection, sizeof(float));
     Serial.write((uint8_t*)&Kp, sizeof(float));

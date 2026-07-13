@@ -13,17 +13,26 @@ from Phidget22.Devices.TemperatureSensor import *
 
 
 #Setting up serial
-refreshRate = 100 #based off MAX6675
-serialReader = serial.Serial(port = "COM6", baudrate = 9600, timeout = 1)
+refreshRate = 25 #based off Phidget (minimum 20 ms)
+
+#setting up Phidget
+measurement = 0.0
+measurementLock = threading.Lock()
+tempReader = TemperatureSensor()
+tempReader.openWaitForAttachment(Phidget.DEFAULT_TIMEOUT)
+tempReader.setDataInterval(refreshRate)
+
+#setting up Arduino
+ser = serial.Serial(port = "COM6", baudrate = 115200, timeout = 1)
+serialLock = threading.Lock()
 startingByte = b'\xAA'
-packageSize = 28 #in bytes
+packageSize = 24 #in bytes
 time.sleep(2) #wait for arduino to reset
 print("Arduino ready")
 
 
-#setting up Phidget
-def onTempChange(self, temperature):
-    measurment = temperature
+
+
 
 
 
@@ -43,19 +52,23 @@ def saveAsCSV(filename = defaultFilename):
         print("Data saved to downloads")
         
 def readPacket():
-    while(True):
-        if serialReader.read(1) == startingByte: #find starting byte
-            break
-    package = serialReader.read(packageSize)
-    if(len(package) != packageSize):
-        return None #package incompelete
-    return package
+    while ser.in_waiting > 0:
+        byte = ser.read(1)
+        if byte == startingByte:
+            start = time.time()
+            while ser.in_waiting < packageSize:
+                if time.time() - start > 0.01:
+                    return None
+                time.sleep(0.001)
+            return ser.read(packageSize)
+    return None
+   
 
 def decodePacket(bytePackage):
     try:
-        (setpoint, measurement, totalPowerOutput, PIDcorrection, Kp, Ki, Kd) = struct.unpack("<fffffff", bytePackage)
-        return (setpoint, measurement, totalPowerOutput, PIDcorrection, Kp, Ki, Kd) #return tuple
-    except:
+        (setpoint, totalPowerOutput, PIDcorrection, Kp, Ki, Kd) = struct.unpack("<ffffff", bytePackage)
+        return (setpoint, totalPowerOutput, PIDcorrection, Kp, Ki, Kd) #return tuple
+    except struct.error:
         return None #decode failed
     
 def sendCommand(cmd, value): #string, float
@@ -64,8 +77,8 @@ def sendCommand(cmd, value): #string, float
     # KI -> I gain
     # KD -> D gain
     command = f"{cmd}{value}\n" 
-    print(f"Command {cmd}{value} sent\n")
-    serialReader.write(command.encode())
+    with serialLock:
+        ser.write(command.encode())
 
 def inputThread(): #thread allows for Arduino commands without interrupts
     while True:
@@ -79,11 +92,28 @@ def inputThread(): #thread allows for Arduino commands without interrupts
             cmd = userInput[:2].upper()
             value = float(userInput[2:])
             sendCommand(cmd, value)
-        except:
+            print(f"Command {cmd}{value} sent\n")
+        except ValueError:
             print("Invalid input")
 
 #Begin input thread
 threading.Thread(target = inputThread, daemon = True).start()
+
+def outputThread():
+    global measurement
+    while True:
+        try:
+            with measurementLock:
+                measurement = tempReader.getTemperature()
+            if not numpy.isnan(measurement):
+                sendCommand("TM", measurement)
+        except Exception as e:
+            print("Temperature error:", e)
+        time.sleep(refreshRate / 1000.0)
+
+#Begin output thread
+threading.Thread(target = outputThread, daemon = True).start()
+
 
 #setup Plotter
 plotController = QtWidgets.QApplication([])
@@ -127,25 +157,32 @@ def update(setpoint, measurement, totalPowerOutput, PIDcorrection):
 counter = 0
 def readAndUpdate():
     global counter
-    if(serialReader.is_open):
+    global measurement
+    with measurementLock:
+        currentMeasurement = measurement
+    latestPacket = None
+
+    # Drain serial buffer and keep newest packet
+    while True:
         packet = readPacket()
-        if packet == None:
-            return #missing packet
-    else:
-        return #nothing in serial
-    decoded = decodePacket(packet)
+        if packet is None:
+            break
+        latestPacket = packet
+    if latestPacket is None:
+        return
+    decoded = decodePacket(latestPacket)
     if(decoded == None):
         return #decode failed
-    setpoint, measurement, totalPowerOutput, PIDcorrection, Kp, Ki, Kd = decoded
+    setpoint, totalPowerOutput, PIDcorrection, Kp, Ki, Kd = decoded
 
     #Adding new data to logged data
-    loggedData.append([time.time() - startingTime, setpoint, measurement, totalPowerOutput, PIDcorrection])
+    loggedData.append([time.time() - startingTime, setpoint, currentMeasurement, totalPowerOutput, PIDcorrection])
 
     #printing diagnostics
     if counter % 10 == 0: #print every 10th sample
-        print(f"Temp: {measurement:.2f} °C | Kp: {Kp:.2f} | Ki: {Ki:.2f} | Kd: {Kd:.2f}")
+        print(f"Temp: {currentMeasurement:.2f} °C | Kp: {Kp:.2f} | Ki: {Ki:.2f} | Kd: {Kd:.2f}")
     counter += 1
-    update(setpoint, measurement, totalPowerOutput, PIDcorrection)
+    update(setpoint, currentMeasurement, totalPowerOutput, PIDcorrection)
 
 #main loop using timer
 timer = QtCore.QTimer()
