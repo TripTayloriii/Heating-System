@@ -8,6 +8,9 @@ import struct
 import numpy   
 import csv 
 from pathlib import Path
+from Phidget22.Phidget import * # User's Manual: https://www.phidgets.com/?prodid=725&pcid=87#Tab_API
+from Phidget22.Devices.TemperatureSensor import *
+
 
 #Setting up serial
 refreshRate = 100 #based off MAX6675
@@ -16,6 +19,13 @@ startingByte = b'\xAA'
 packageSize = 28 #in bytes
 time.sleep(2) #wait for arduino to reset
 print("Arduino ready")
+
+
+#setting up Phidget
+def onTempChange(self, temperature):
+    measurment = temperature
+
+
 
 startingTime = time.time()
 downloads = Path.home() / "Downloads"

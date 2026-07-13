@@ -4,7 +4,7 @@ import os
 import numpy as np
 
 #load CSV file
-filename = "PID5V-P12-I2-D2.csv"  #filename
+filename = "0.8-0.3-0.5 with int scaling.csv"  #filename
 
 #file must me in same folder as script
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -24,7 +24,7 @@ PIDOutput = df.iloc[:, 4]
 #trim data to window
 startTime = 0
 endTime = time.iloc[-1]
-startTime = 65
+startTime = 9.4
 # endTime = 300
 window = (time >= startTime) & (time <= endTime)
 time = time[window].reset_index(drop=True)
