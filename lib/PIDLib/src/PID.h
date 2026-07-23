@@ -11,15 +11,15 @@ class PID{
         float Kp;
         float Kd;
         float Ki;
-        float dt;
-        float prevSetpoint;
+        float dt; //in s
+        float error;
         float integral = 0;
         float derivative = 0;
         float derivativeMeasurement = 0;
         float filteredDerivativeMeasurement;
         float prevError = 0;
         float prevMeasurement;
-        float error;
+        float prevSetpoint;
 
 };
 #endif

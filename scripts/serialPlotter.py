@@ -13,20 +13,20 @@ from Phidget22.Devices.TemperatureSensor import *
 
 
 #Setting up serial
-refreshRate = 25 #based off Phidget (minimum 20 ms)
+REFRESH_RATE = 25 #based off Phidget (minimum 20 ms)
 
 #setting up Phidget
 measurement = 0.0
 measurementLock = threading.Lock() #use when changing measurement
 tempReader = TemperatureSensor()
 tempReader.openWaitForAttachment(Phidget.DEFAULT_TIMEOUT)
-tempReader.setDataInterval(refreshRate)
+tempReader.setDataInterval(REFRESH_RATE)
 
 #setting up Arduino
 ser = serial.Serial(port = "COM6", baudrate = 115200, timeout = 1)
 serialLock = threading.Lock() #use when writing to serial
-startingByte = b'\xAA'
-packageSize = 24 #in bytes
+STARTING_BYTE = b'\xAA'
+PACKAGE_SIZE = 24 #in bytes
 time.sleep(2) #wait for arduino to reset
 print("Arduino ready")
 
@@ -49,16 +49,15 @@ def saveAsCSV(filename = defaultFilename):
 def readPacket():
     while ser.in_waiting > 0:
         byte = ser.read(1)
-        if byte == startingByte:
+        if byte == STARTING_BYTE:
             start = time.time()
-            while ser.in_waiting < packageSize:
+            while ser.in_waiting < PACKAGE_SIZE:
                 if time.time() - start > 0.01:
                     return None
                 time.sleep(0.001)
-            return ser.read(packageSize)
+            return ser.read(PACKAGE_SIZE)
     return None
    
-
 def decodePacket(bytePackage):
     try:
         (setpoint, totalPowerOutput, PIDcorrection, Kp, Ki, Kd) = struct.unpack("<ffffff", bytePackage)
@@ -103,7 +102,7 @@ def outputThread():
                 sendCommand("TM", measurement)
         except Exception as e:
             print("Temperature error:", e)
-        time.sleep(refreshRate / 1000.0)
+        time.sleep(REFRESH_RATE / 1000.0)
 #Begin output thread
 threading.Thread(target = outputThread, daemon = True).start()
 
@@ -180,7 +179,7 @@ def readAndUpdate():
 #main loop using timer
 timer = QtCore.QTimer()
 timer.timeout.connect(readAndUpdate)
-timer.start(refreshRate)
+timer.start(REFRESH_RATE)
 
 #begin timer loop
 QtWidgets.QApplication.instance().exec_()
