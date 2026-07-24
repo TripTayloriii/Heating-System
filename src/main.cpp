@@ -15,7 +15,7 @@ float Kp = 0.15;
 float Kd = 0.15;
 float Ki = 0.1;
 float setpoint = 0.0; //celsius
-bool feedforward_on = true;
+bool feedforwardOn = true;
 unsigned long timer = 0;
 PID thermoPID(Kp, Ki, Kd);
 
@@ -75,9 +75,12 @@ void loop() {
         Kd = newD;
         thermoPID.setK(Kp, Ki, Kd);
       }
-      inputString = ""; //clear input
+
+      else if(inputString.startsWith("FF")){ //toggle feedforward
+        feedforwardOn = !feedforwardOn;
+      }
     }else{
-      inputString += c;
+      inputString = ""; //clear input
     }
   }
 
@@ -97,8 +100,8 @@ void loop() {
     PIDcorrection = 0.8*PIDcorrection + 0.2*thermoPID.update(setpoint, celsiusMeasurement, dt / 100000.0); //Dampened output
     PIDcorrection = constrain(PIDcorrection, -100, 100);
 
-
-    totalPowerOutput = feedforward*feedforward_on + PIDcorrection; //mostly feedforward
+    // Combined response
+    totalPowerOutput = feedforwardOn*feedforward + PIDcorrection; 
     totalPowerOutput = constrain(totalPowerOutput, 0, 100);
 
     //Sending PID output to python plotter (using binary protocol)
