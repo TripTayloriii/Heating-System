@@ -118,7 +118,7 @@ curveMeasurement = plot.plot(pen='g', name="Measured")
 curveOutput = plot.plot(pen='b', name="Total Output")
 curvePID = plot.plot(pen='y', name="PID Correction")
 # plot.enableAutoRange(axis='y')
-plot.setYRange(0, 300)
+plot.setYRange(0, 600)
 plot.addLegend(offset=(10,10))
 
 #initialize empty data
@@ -171,8 +171,8 @@ def readAndUpdate():
     loggedData.append([time.time() - startingTime, setpoint, currentMeasurement, totalPowerOutput, PIDcorrection])
 
     #printing diagnostics
-    if counter % 20 == 0: #print every 10th sample
-        print(f"Temp: {currentMeasurement:.2f} °C | Kp: {Kp:.2f} | Ki: {Ki:.2f} | Kd: {Kd:.2f}")
+    if counter % (550/REFRESH_RATE) == 0: #print every 20th sample
+        print(f"Temp: {currentMeasurement:.2f} °C | SP: {setpoint} °C | Kp: {Kp:.2f} | Ki: {Ki:.2f} | Kd: {Kd:.2f}")
     counter += 1
     update(setpoint, currentMeasurement, totalPowerOutput, PIDcorrection)
 

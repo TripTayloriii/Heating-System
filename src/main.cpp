@@ -7,7 +7,7 @@
 #include <PID.h>
 //Thermocouple -------------------------------------
 
-int REFRESH_RATE = 25000; //in micros; 20 bare minimum for Phidget (225 for MAX6675)
+int REFRESH_RATE = 25000; //in micros; 200000 micro seconds bare minimum for Phidget (225000 for MAX6675)
 float celsiusMeasurement; //ambient
 
 //PID system -----------------------------------------
@@ -24,7 +24,7 @@ String inputString = "";
 
 //Heating system -------------------------------------------
 int HEATING_PIN = 3;
-unsigned long WINDOW_SIZE = 50000; // micro seconds
+unsigned long WINDOW_SIZE = 1000000; // micro seconds
 unsigned long windowStart;
 float PIDcorrection = 0.0;
 float totalPowerOutput = 0.0;
@@ -79,8 +79,10 @@ void loop() {
       else if(inputString.startsWith("FF")){ //toggle feedforward
         feedforwardOn = !feedforwardOn;
       }
-    }else{
       inputString = ""; //clear input
+    }
+    else{
+      inputString += c;
     }
   }
 
@@ -94,14 +96,15 @@ void loop() {
     timer = currentTime; //update timer
 
     // Feedforward
-    float feedforward = 0.367 * (setpoint - 26.955); //derived with trendline of hold temps at 5V
+    float feedforward = 0.308 * (setpoint - 83.545); //derived with trendline of hold temps at 5V
 
     // PID response
     PIDcorrection = 0.8*PIDcorrection + 0.2*thermoPID.update(setpoint, celsiusMeasurement, dt / 100000.0); //Dampened output
     PIDcorrection = constrain(PIDcorrection, -100, 100);
 
     // Combined response
-    totalPowerOutput = feedforwardOn*feedforward + PIDcorrection; 
+    // totalPowerOutput = feedforwardOn*feedforward + PIDcorrection; 
+    totalPowerOutput = setpoint;
     totalPowerOutput = constrain(totalPowerOutput, 0, 100);
 
     //Sending PID output to python plotter (using binary protocol)

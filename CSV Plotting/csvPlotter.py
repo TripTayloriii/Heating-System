@@ -4,7 +4,7 @@ import os
 import numpy as np
 
 #load CSV file
-filename = "0.8-0.3-0.5 with int scaling.csv"  #filename
+filename = "copperHeating850.csv"  #filename
 
 #file must me in same folder as script
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -24,8 +24,8 @@ PIDOutput = df.iloc[:, 4]
 #trim data to window
 startTime = 0
 endTime = time.iloc[-1]
-startTime = 9.4
-# endTime = 300
+startTime = 0
+# endTime = startTime + 3
 window = (time >= startTime) & (time <= endTime)
 time = time[window].reset_index(drop=True)
 time = time - startTime
@@ -42,10 +42,14 @@ plt.ylabel(df.columns[2])
 plt.title(filename[:filename.find(".csv")])
 plt.grid()
 plt.xlim(0, endTime - startTime)          
-plt.ylim(-1, 300)   
+plt.ylim(-1, 1000)   
 #annotations
-# plt.axvline(x=187.5, linestyle='--', color = 'r')
-# plt.text(189.5, 60, "Measuring Sample", rotation=90, fontsize = 8)     
+# plt.axvline(x=83, linestyle='--', color = 'r', lw = 0.8)
+# plt.text(83, 250, "arcing begins", rotation = 90, fontsize = 8)   
+
+maxIndex = np.argmax(measurement);
+plt.scatter(time.iloc[maxIndex], measurement.iloc[maxIndex], 25, color = "red", zorder = 10)
+plt.text(time.iloc[maxIndex] + 1, measurement.iloc[maxIndex], str(measurement.iloc[maxIndex]), fontsize = 8)
 
 # plt.axvline(x=308, linestyle='--', color = 'r')
 # plt.text(310, 60, "Measuring CFC", rotation=90, fontsize = 8)   
