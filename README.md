@@ -1,4 +1,3 @@
-Includes PID and MAX6675 (thermocouple) library for UHT-UHV project.
+Includes PID control, DIC plotting, and CSV plotting (for PID) for UHT-UHV project.
 To do list:
-  -tune PID experimentally
-  -potentially add filtering depending on input noise and volatility
+  -fix DIC script
